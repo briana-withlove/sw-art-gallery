@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voices of South Windsor — A Human Art Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #0d0c0a;
+      color: #f0ead8;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .gallery-header {
+      padding: 2.5rem 2rem 1.5rem;
+      border-bottom: 1px solid rgba(240,234,216,0.1);
+    }
+
+    .gallery-header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      color: #f0ead8;
+    }
+
+    .gallery-header .subtitle {
+      font-size: 13px;
+      color: rgba(240,234,216,0.45);
+      margin-top: 6px;
+      font-weight: 300;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .strip-wrapper {
+      position: relative;
+      overflow: hidden;
+      padding: 2rem 0;
+      cursor: grab;
+    }
+
+    .strip-wrapper:active { cursor: grabbing; }
+
+    .strip {
+      display: flex;
+      gap: 20px;
+      padding: 0 2rem;
+      width: max-content;
+    }
+
+    .art-card {
+      flex: 0 0 200px;
+      height: 270px;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .art-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    }
+
+    .art-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .art-card .card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(10,9,6,0.9) 0%, transparent 55%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 14px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .art-card:hover .card-overlay { opacity: 1; }
+
+    .card-overlay .art-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 14px;
+      color: #f0ead8;
+      line-height: 1.3;
+    }
+
+    .card-overlay .art-artist {
+      font-size: 11px;
+      color: rgba(240,234,216,0.55);
+      margin-top: 3px;
+      letter-spacing: 0.04em;
+    }
+
+    .card-overlay .art-type {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #c9a96e;
+      margin-bottom: 5px;
+    }
+
+    .scroll-hint {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(240,234,216,0.25);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding-bottom: 1.5rem;
+    }
+
+    /* Detail View */
+    .detail-view {
+      position: fixed;
+      inset: 0;
+      background: #0d0c0a;
+      display: none;
+      z-index: 100;
+      overflow-y: auto;
+    }
+
+    .detail-view.open { display: block; }
+
+    .detail-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(240,234,216,0.5);
+      cursor: pointer;
+      padding: 1.5rem 2rem;
+      transition: color 0.2s;
+      background: none;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .detail-back:hover { color: #f0ead8; }
+
+    .detail-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: calc(100vh - 60px);
+    }
+
+    @media (max-width: 700px) {
+      .detail-content { grid-template-columns: 1fr; }
+    }
+
+    .detail-image-panel {
+      background: #0a0906;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      min-height: 400px;
+    }
+
+    .detail-image-panel img {
+      max-width: 100%;
+      max-height: 500px;
+      object-fit: contain;
+      border-radius: 2px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+    }
+
+    .audio-piece { text-align: center; }
+
+    .audio-icon {
+      width: 100px;
+      height: 100px;
+      border: 1px solid rgba(201,169,110,0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      font-size: 40px;
+    }
+
+    .detail-text-panel {
+      padding: 3rem;
+      border-left: 1px solid rgba(240,234,216,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .detail-type-tag {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #c9a96e;
+    }
+
+    .detail-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1.2;
+      color: #f0ead8;
+    }
+
+    .detail-artist {
+      font-size: 13px;
+      color: rgba(240,234,216,0.5);
+      letter-spacing: 0.04em;
+    }
+
+    .detail-divider {
+      width: 40px;
+      height: 1px;
+      background: rgba(201,169,110,0.4);
+    }
+
+    .detail-story-label {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(240,234,216,0.35);
+      margin-bottom: -6px;
+    }
+
+    .detail-story {
+      font-size: 15px;
+      line-height: 1.85;
+      color: rgba(240,234,216,0.75);
+      font-weight: 300;
+    }
+
+    .detail-quote {
+      border-left: 2px solid #c9a96e;
+      padding-left: 16px;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 15px;
+      color: rgba(240,234,216,0.6);
+      line-height: 1.7;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="gallery-header">
+    <h1>Voices of South Windsor</h1>
+    <p class="subtitle">A gallery of human stories — art made from lived experience</p>
+  </div>
+
+  <div class="strip-wrapper" id="stripWrapper">
+    <div class="strip" id="strip"></div>
+  </div>
+  <div class="scroll-hint">— scroll or drag to explore —</div>
+
+  <div class="detail-view" id="detailView">
+    <button class="detail-back" id="backBtn">&#8592; back to gallery</button>
+    <div class="detail-content">
+      <div class="detail-image-panel" id="detailImage"></div>
+      <div class="detail-text-panel">
+        <div class="detail-type-tag" id="detailType"></div>
+        <div class="detail-title" id="detailTitle"></div>
+        <div class="detail-artist" id="detailArtist"></div>
+        <div class="detail-divider"></div>
+        <div class="detail-story-label">The story behind it</div>
+        <div class="detail-story" id="detailStory"></div>
+        <div class="detail-quote" id="detailQuote"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // ADD YOUR ARTWORKS HERE
+    // For each piece, fill in:
+    //   title      - name of the piece
+    //   artist     - artist's name
+    //   type       - e.g. Photography, Painting, Music, Poetry...
+    //   imageUrl   - path to the image file (or leave color for placeholder)
+    //   isAudio    - set to true for music/audio pieces (shows a note icon)
+    //   story      - the paragraph about the piece and the person behind it
+    //   quote      - a direct quote from the artist
+    // ============================================================
+    const artworks = [
+      {
+        id: 1,
+        title: "Grandmother's Kitchen, 6am",
+        artist: "Maya Chen",
+        type: "Photography",
+        color: "#3a2e24",
+        imageUrl: "", // ← paste your image path or URL here
+        story: "My grandmother immigrated from Fujian Province in 1987. Every morning she was up before anyone else, and the sound of that percolator was the sound of safety to me. I took this photo the morning after she passed. The light was exactly the same. I needed to hold onto that.",
+        quote: "Some images you don't compose. They just exist, and you're lucky enough to be there.",
+      },
+      {
+        id: 2,
+        title: "Elegy in D Minor",
+        artist: "James Okafor",
+        type: "Music",
+        color: "#1e2a35",
+        imageUrl: "",
+        isAudio: true,
+        story: "I wrote this piece three weeks after my father died. I didn't intend to write anything — I just sat down at the piano. It came out in one sitting. It's the most honest thing I've ever made, and I almost didn't share it because of that. It's about the specific silence in a house after someone is gone.",
+        quote: "Grief doesn't sound like sadness. It sounds like a room that used to have a person in it.",
+      },
+      {
+        id: 3,
+        title: "Still Here",
+        artist: "Sofia Alvarez",
+        type: "Poetry",
+        color: "#2a1e2e",
+        imageUrl: "",
+        story: "I wrote this during my sophomore year when I was having a really hard time. My English teacher, Mr. Harrington, encouraged me to submit it to the school literary magazine. I almost didn't. Now it hangs in the guidance counselor's office. Three people have told me it helped them. That's the whole point.",
+        quote: "I keep every version of this poem. Each one is a different version of me trying to stay.",
+      },
+      {
+        id: 4,
+        title: "Route 30 at Dusk",
+        artist: "Tyler Nguyen",
+        type: "Photography",
+        color: "#1a2820",
+        imageUrl: "",
+        story: "Everyone drives Route 30 and doesn't think about it. I've been photographing it for two years at the exact same spot at dusk. It's changed — new developments, a gas station that closed, a tree that fell. It's a record of a place changing that nobody else thought to keep. South Windsor isn't a landmark. That's why it needs to be documented.",
+        quote: "The ordinary is the most honest subject. It doesn't perform for the camera.",
+      },
+      {
+        id: 5,
+        title: "After the Championship",
+        artist: "Marcus Williams",
+        type: "Painting",
+        color: "#2e2a1a",
+        imageUrl: "",
+        story: "We lost the state championship my senior year by two points. I painted this from memory six months later — the specific way the light hit the lockers, how nobody talked. I wanted to capture that particular kind of disappointment that still has dignity in it. We weren't broken. We were just done.",
+        quote: "Losing taught me something winning couldn't. I wanted to paint that lesson, not the trophy.",
+      },
+      {
+        id: 6,
+        title: "What My Mother Couldn't Say",
+        artist: "Priya Sharma",
+        type: "Mixed Media",
+        color: "#2e1a1a",
+        imageUrl: "",
+        story: "My mother grew up in a home where emotions weren't discussed. She showed love through cooking, through ironing my clothes, through leaving exact change for the bus. This piece is made from her handwriting, a piece of her sari, and a photo of her hands. It's me translating a language she never had words for.",
+        quote: "Some of the most profound things my mother said, she said with her hands.",
+      },
+      {
+        id: 7,
+        title: "Flood Season",
+        artist: "Emma Kozlowski",
+        type: "Short Story",
+        color: "#1a2030",
+        imageUrl: "",
+        story: "This story is about the summer I was twelve, when the brook behind our house flooded and wrecked our basement. My parents fought a lot that summer over money and I spent most of it in the woods by the water. I fictionalized it but kept the specific smell of the wet bark, the way the light looked. Certain details have to be true even when the story isn't.",
+        quote: "I didn't write it to process anything. I wrote it because that summer deserved to be somewhere.",
+      },
+      {
+        id: 8,
+        title: "Portrait of My Coach",
+        artist: "Aaliyah Brooks",
+        type: "Drawing",
+        color: "#1e2624",
+        imageUrl: "",
+        story: "Coach Davis taught me that working hard wasn't about grades or trophies. She stayed after practice to talk to me during the worst year of my life. I drew her from memory, trying to capture the exact way she looked when she was really listening — head tilted, one eyebrow slightly raised. I gave it to her at graduation. She cried.",
+        quote: "I drew what listening looks like. It looks like her.",
+      },
+    ];
+
+    function placeholderSrc(color, type, w, h) {
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><rect width='${w}' height='${h}' fill='${color}' rx='2'/><text x='${w/2}' y='${h/2+5}' text-anchor='middle' font-family='Georgia,serif' font-size='13' fill='rgba(240,230,200,0.35)'>${type}</text></svg>`;
+      return 'data:image/svg+xml;base64,' + btoa(svg);
+    }
+
+    function buildStrip() {
+      const strip = document.getElementById('strip');
+      artworks.forEach(art => {
+        const card = document.createElement('div');
+        card.className = 'art-card';
+        const src = art.imageUrl || placeholderSrc(art.color, art.type, 200, 270);
+        card.innerHTML = `
+          <img src="${src}" alt="${art.title}">
+          <div class="card-overlay">
+            <div class="art-type">${art.type}</div>
+            <div class="art-title">${art.title}</div>
+            <div class="art-artist">${art.artist}</div>
+          </div>
+        `;
+        card.addEventListener('click', () => openDetail(art));
+        strip.appendChild(card);
+      });
+    }
+
+    function openDetail(art) {
+      document.getElementById('detailType').textContent = art.type;
+      document.getElementById('detailTitle').textContent = art.title;
+      document.getElementById('detailArtist').textContent = 'by ' + art.artist;
+      document.getElementById('detailStory').textContent = art.story;
+      document.getElementById('detailQuote').textContent = '\u201c' + art.quote + '\u201d';
+
+      const imgPanel = document.getElementById('detailImage');
+      if (art.isAudio) {
+        imgPanel.innerHTML = `<div class="audio-piece"><div class="audio-icon">&#9835;</div><p style="font-size:13px;color:rgba(240,234,216,0.4);letter-spacing:0.06em;text-transform:uppercase;">${art.type}</p><p style="font-size:12px;color:rgba(240,234,216,0.25);margin-top:8px;">[audio piece — embed player here]</p></div>`;
+      } else {
+        const src = art.imageUrl || placeholderSrc(art.color, art.type, 400, 500);
+        imgPanel.innerHTML = `<img src="${src}" alt="${art.title}">`;
+      }
+
+      document.getElementById('detailView').classList.add('open');
+      window.scrollTo(0, 0);
+    }
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+      document.getElementById('detailView').classList.remove('open');
+    });
+
+    buildStrip();
+
+    // Auto-scroll
+    let autoScrollActive = true;
+    let scrollPos = 0;
+    const strip = document.getElementById('strip');
+    const wrapper = document.getElementById('stripWrapper');
+
+    function autoScroll() {
+      if (!autoScrollActive) return;
+      scrollPos += 0.5;
+      const maxScroll = strip.scrollWidth - wrapper.clientWidth + 64;
+      if (scrollPos >= maxScroll) scrollPos = 0;
+      strip.style.transform = `translateX(-${scrollPos}px)`;
+      requestAnimationFrame(autoScroll);
+    }
+
+    autoScroll();
+
+    // Drag to scroll
+    let isDragging = false, startX = 0, startScroll = 0;
+    wrapper.addEventListener('mousedown', e => {
+      isDragging = true;
+      autoScrollActive = false;
+      startX = e.pageX;
+      startScroll = scrollPos;
+    });
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      scrollPos = Math.max(0, startScroll - (e.pageX - startX));
+      strip.style.transform = `translateX(-${scrollPos}px)`;
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    // Touch support
+    wrapper.addEventListener('touchstart', e => {
+      autoScrollActive = false;
+      startX = e.touches[0].pageX;
+      startScroll = scrollPos;
+    });
+    wrapper.addEventListener('touchmove', e => {
+      scrollPos = Math.max(0, startScroll - (e.touches[0].pageX - startX));
+      strip.style.transform = `translateX(-${scrollPos}px)`;
+    });
+  </script>
+</body>
+</html>
